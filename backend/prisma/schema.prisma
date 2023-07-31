@@ -21,6 +21,8 @@ model User {
   forgotPassword           String?       @db.VarChar(255)
   forgotPasswordExpiration DateTime?     @db.DateTime(3)
   refreshToken             RefreshToken?
+  userOnRooms              UserOnRooms[]
+  socketClientId           String?       @unique
 
   @@map("user")
 }
@@ -32,4 +34,25 @@ model RefreshToken {
   userId   String @unique
 
   @@map("refreshToken")
+}
+
+model Room {
+  id          String        @id @default(uuid())
+  name        String
+  privacy     Boolean
+  password    String?
+  UserOnRooms UserOnRooms[]
+
+  @@map("room")
+}
+
+model UserOnRooms {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  roomId     String
+  room       Room     @relation(fields: [roomId], references: [id])
+  assignedAt DateTime @default(now())
+  assignedBy String
+
+  @@id([userId, roomId])
 }

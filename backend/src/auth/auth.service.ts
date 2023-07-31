@@ -1,18 +1,24 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { sign } from 'jsonwebtoken';
 import { UserRepository } from 'src/modules/repositories';
 import { compare } from 'bcrypt';
 import { RefreshTokenRepository } from 'src/modules/repositories/refresh-token.respository';
+import { JwtService } from '@nestjs/jwt/dist';
+
+interface Payload {
+  userId: string;
+}
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
+    private readonly jwtService: JwtService,
   ) {}
 
   isValidMail(email: string) {
@@ -24,17 +30,18 @@ export class AuthService {
   }
 
   generateToken(userId: string) {
-    const JWT_KEY = '7u598cj1m753128947y2893n1d98asudyas';
-
-    const token = sign({}, JWT_KEY, {
-      subject: userId,
-      expiresIn: '1h',
-    });
+    const token = this.jwtService.sign({ userId });
 
     return token;
   }
 
-  async login(email: string, password: string) {
+  decodeToken(token: string) {
+    const payload = this.jwtService.decode(token) as Payload;
+
+    return payload;
+  }
+
+  async signIn(email: string, password: string) {
     const user = await this.userRepository.findUserByUnique({ email: email });
 
     if (!user) {
@@ -50,6 +57,18 @@ export class AuthService {
     const token = this.generateToken(user.id);
     const refreshToken = await this.refreshTokenRepository.create(user.id);
 
-    return { token, refreshToken };
+    return { token, refreshToken, user };
+  }
+
+  getAuthenticatedUser(req: Request) {
+    const [, token] = req.headers['authorization']?.split(' ') ?? [];
+
+    const payload = this.decodeToken(token);
+
+    if (!payload.userId) {
+      throw new BadRequestException('missing param error: userId');
+    }
+
+    return payload.userId;
   }
 }

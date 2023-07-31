@@ -18,4 +18,30 @@ export class UserRepository {
       where: input,
     });
   }
+
+  userRooms(userId: string) {
+    return this.prismaService.user.findMany({
+      where: {
+        id: userId,
+      },
+      include: {
+        userOnRooms: {
+          include: {
+            room: true,
+          },
+        },
+      },
+    });
+  }
+
+  syncSocketClientId(userId: string, socketClientId: string) {
+    return this.prismaService.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        socketClientId,
+      },
+    });
+  }
 }

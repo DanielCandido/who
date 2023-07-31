@@ -28,7 +28,7 @@ export class AuthController {
       throw new BadRequestException('email is not valid');
     }
 
-    const { refreshToken, token } = await this.appService.login(
+    const { refreshToken, token, user } = await this.appService.signIn(
       email,
       password,
     );
@@ -37,6 +37,11 @@ export class AuthController {
       token,
       refreshToken: refreshToken.id,
       expireAt: '2d',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.firstName + ' ' + user.lastName,
+      },
     };
   }
 }
